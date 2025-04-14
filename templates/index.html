@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pneumonia Classifier</title>
+  <link rel="stylesheet" href="static/styles.css">
+  <style>
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .form-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    .form-section h3 { margin-top: 0; color: #333; }
+    .symptoms { margin: 15px 0; }
+    .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Pneumonia Classifier</h2>
+    
+    <!-- Symptoms Form -->
+    <div class="form-section">
+      <h3>Symptoms Analysis</h3>
+      <form id="symptoms-form">
+        <label>Age:</label>
+        <input type="number" name="Age" required>
+
+        <label>Gender (0 = Female, 1 = Male):</label>
+        <input type="number" name="Gender" min="0" max="1" required>
+
+        <label>Heart Rate (bpm):</label>
+        <input type="number" name="Heart_Rate_bpm" required>
+
+        <label>Body Temperature (°C):</label>
+        <input type="number" name="Body_Temperature_C" step="0.1" required>
+
+        <label>Oxygen Saturation (%):</label>
+        <input type="number" name="Oxygen_Saturation_%" required>
+
+        <div class="symptoms">
+          {% for symptom in symptoms %}
+            <div>
+              <label>{{ symptom.replace("Symptom_", "").replace("_", " ") }}:
+                <input type="radio" name="{{ symptom }}" value="1" required> Yes
+                <input type="radio" name="{{ symptom }}" value="0"> No
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Analyze Symptoms</button>
+      </form>
+      <div id="symptoms-result" class="result"></div>
+    </div>
+
+    <!-- X-ray Form -->
+    <div class="form-section">
+      <h3>X-ray Analysis</h3>
+      <form id="xray-form">
+        <label>Upload X-ray Image:</label>
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">Analyze X-ray</button>
+      </form>
+      <div id="xray-result" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    function handleFormSubmit(formId, resultId, endpoint) {
+      const form = document.getElementById(formId);
+      const resultDiv = document.getElementById(resultId);
+    
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        resultDiv.className = 'result';
+        resultDiv.innerText = '🔄 Processing...';
+    
+        const formData = new FormData(form);
+    
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            body: formData
+          });
+    
+          const data = await response.json();
+          if (data.error) {
+            resultDiv.className = 'result error';
+            resultDiv.innerText = `Error: ${data.error}`;
+          } else {
+            resultDiv.className = 'result success';
+            let resultText = data.result;
+    
+            // Append relief suggestions if available
+            if (data.relief && data.relief.length > 0) {
+              resultText += `\n\n💡 Suggested Relief:\n- ` + data.relief.join('\n- ');
+            }
+    
+            resultDiv.innerText = resultText;
+          }
+        } catch (error) {
+          resultDiv.className = 'result error';
+          resultDiv.innerText = `Error: ${error.message}`;
+        }
+      });
+    }
+    
+    // Initialize both forms
+    handleFormSubmit('symptoms-form', 'symptoms-result', '/predict_symptoms');
+    handleFormSubmit('xray-form', 'xray-result', '/predict_xray');
+    </script>
+    
+</body>
+</html>
